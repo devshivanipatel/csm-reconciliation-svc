@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csm-route-svc
+  labels:
+    app: csm-route-svc
+    type: backend
+    application: csm
+    environment: qa
+  namespace: csm-qa-namespace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: csm-route-svc
+  template:
+    metadata:
+      labels:
+        app: csm-route-svc
+        application: csm
+        environment: qa
+    spec:
+      serviceAccountName: csm-qa-service-account
+      containers:
+        - name: csm-route-svc
+          image: 090207923567.dkr.ecr.us-east-1.amazonaws.com/csm:csm-account-ms:3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: app-port
+              containerPort: 8090
+          env:
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: csm-route-svc-secrets
+                  key: DB_PASS
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: csm-route-svc-secrets
+                  key: DB_USER
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: csm-route-svc-secrets
+                  key: JWT_SECRET_KEY
+            - name: JAVA_ARGS
+              value: -Xmx5000m -Xms5000m -XX:+PrintFlagsFinal
+            - name: CONFIG_SERVER_URL
+              value: http://csm-configserver-svc
+            - name: ENV_LABEL
+              value: qa
+            - name: COGNITO_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: csm-route-svc-secrets
+                  key: COGNITO_CLIENT_ID
+            - name: COGNITO_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: csm-route-svc-secrets
+                  key: COGNITO_CLIENT_SECRET
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/route/v1/actuator/health
+              port: app-port
+              scheme: HTTP
+            initialDelaySeconds: 45
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 20
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/route/v1/actuator/health
+              port: app-port
+              scheme: HTTP
+            initialDelaySeconds: 45
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ "ALL" ]
+            runAsUser: 10000
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            limits:
+              cpu: "2000m"
+              memory: "5500Mi"
+            requests:
+              cpu: "2000m"
+              memory: "5500Mi"

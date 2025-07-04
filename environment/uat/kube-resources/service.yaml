@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: csm-route-svc
+  namespace: csm-uat-namespace
+  labels:
+    environment: uat
+    application: csm
+spec:
+  ports:
+    - port: 80
+      targetPort: 8090
+      protocol: TCP
+  selector:
+    app: csm-route-svc
+  type: NodePort
